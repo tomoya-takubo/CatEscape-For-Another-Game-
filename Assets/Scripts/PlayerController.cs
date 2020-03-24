@@ -9,7 +9,17 @@ public class PlayerController : MonoBehaviour
     {
         
     }
+    public void RButtonDown()
+    {
+        transform.Translate(3, 0, 0);
+    }
 
+    public void LButtonDown()
+    {
+        transform.Translate(-3, 0, 0);
+    }
+
+    /***
     // Update is called once per frame
     void Update()
     {
@@ -25,4 +35,5 @@ public class PlayerController : MonoBehaviour
             transform.Translate(3, 0, 0);   //右に[3]動かす
         }
     }
+    ***/
 }
