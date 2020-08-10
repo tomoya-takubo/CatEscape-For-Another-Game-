@@ -1,66 +1,68 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GrassBehavor : MonoBehaviour
+public class GrassBehavor : ClickedObjectBase
 {
-    public PlayerReaction nekoReaction; // ねこリアクション
+    public Sprite[] grasses;                    // [Sprite: 配列] 草むらの絵
+    public SpriteRenderer childGrassSprite;     // [SpriteRenderer] Grass(NoKey)
+    public CapsuleCollider2D grassCol;          // [CapsuleCollider2D] Grass
+    public KeyBehavor keyPrefab;                // [GameObject] KeyPrefab
+    public SpriteRenderer childKeySprite;       // [SpriteRenderer] Key
+    public CircleCollider2D keyCol;             // [CircleCollider2D] Key
+    public bool withKey = false;                // キーが隠れた草むらか
 
-    private bool isGrass = true; // 草があるか
-
-    /*
-    /// <summary>
-    /// 草を取る
-    /// </summary>
-    public void TakeGrass()
+    private void Start()
     {
-        // 自分自身のSetActiveをOFFにする
-        this.gameObject.SetActive(false);
+        // 草むらの絵をランダムに選ぶ
+        // childGrassSprite.sprite = grasses[Random.Range(0, grasses.Length)]; // （★）覚えとく（Random.Rangeの最大値に配列.Lengthを
+                                                                               // 　　　設定することで変更に柔軟に対応できる
+        childGrassSprite.sprite = grasses[UnityEngine.Random.Range(0, grasses.Length)];
     }
-    */
 
-    void OnTriggerStay2D(Collider2D col)
+    /// <summary>
+    /// クリック処理
+    /// </summary>
+    public override void Clicked()
     {
-        // ねこリアクション
-        // くさがいれば
-        if (isGrass)
+        // ネコが近くにいれば
+        if(this.nearCat)
         {
-            // ねこ疑問
-            nekoReaction.Reaction(PlayerReaction.PLAYER_REANCTIONS.QUESTION);
-
-            // Debug.Log("そばに草があります！");
-        }
-        /*
-        // タンスが開いていれば
-        else
-        {
-            // ねこびっくり
-            nekoReaction.Reaction(PlayerReaction.PLAYER_REANCTIONS.EXCLAMATION);
-        }
-        */
-
-        // クリック時イベント
-        if (Input.GetMouseButtonUp(0))
-        {
-            // タンスがタッチされたら
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);    // マウスポインタからレーザ発射
-            RaycastHit2D hit2d = Physics2D.Raycast((Vector2)ray.origin, (Vector2)ray.direction);  // レーザーに当たったオブジェクトを取得
-            if (hit2d && hit2d.collider.gameObject == this.gameObject)  // レーザーに当たったのが自分
+            // キーを持っているか
+            if (withKey)
             {
-                // Debug.Log("クリックして草を検知しました！");
+                // キーのインスタンス生成
+                KeyBehavor key = Instantiate(keyPrefab);    // （★）this.transformで（位置・回転）両方付与できる
 
-                // SetActiveをOFFに
-                this.gameObject.SetActive(false);
+                // 草むらの位置情報取得
+                Vector2 pos = this.transform.position;
+
+                // キー位置情報付与
+                key.transform.position = pos;
+
+                // 他の草むらを消す
+                foreach(GameObject gO in GameObject.FindGameObjectsWithTag("Grass"))
+                {
+                    // 自身なら飛ばす
+                    if(gO == this.gameObject)
+                    {
+                        continue;
+                    }
+
+                    // 削除
+                    Destroy(gO);
+                }
             }
+
+            // 消滅
+            Destroy(this.gameObject);
         }
     }
 
-    /// <summary>
-    /// 接触状態から抜けたとき、リアクションをなしに
-    /// </summary>
-    /// <param name="col"></param>
-    void OnTriggerExit2D(Collider2D col)
+    public override void ChangeNekoEmotion(PlayerController playerController)
     {
-        nekoReaction.Reaction(PlayerReaction.PLAYER_REANCTIONS.NONE);
+        // デフォルト（ネコはてな）
+        base.ChangeNekoEmotion(playerController);
     }
 }

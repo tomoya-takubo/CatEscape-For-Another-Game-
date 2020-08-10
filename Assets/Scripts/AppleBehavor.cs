@@ -2,41 +2,18 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class AppleBehavor : MonoBehaviour
+public class AppleBehavor : ClickedObjectBase
 {
-    //猫の頭のりんご
-    public SpriteRenderer onCatHeadApple;
-    
-    // Update is called once per frame
-    void Update()
+    /// <summary>
+    /// クリック処理
+    /// </summary>
+    public override void Clicked()
     {
-        //マウスがクリックされたら
-        if (Input.GetMouseButtonDown(0))
-        {
-            //クリックしたオブジェクトを取得する
-            GameObject clickedGameObject = null;
-            Ray ray
-                = Camera.main.ScreenPointToRay(Input.mousePosition);
-            RaycastHit2D hit2d
-                = Physics2D.Raycast((Vector2)ray.origin, (Vector2)ray.direction);
+        // ネコにりんごを持たせる
+        SpriteRenderer appleOnHead = GameObject.Find("AppleOnHead").GetComponent<SpriteRenderer>();
+        appleOnHead.enabled = true;
 
-            //Debug.Log("hit2d：" + hit2d.collider.gameObject);
-
-            //自分がクリックされていたら
-            if (hit2d && hit2d.collider.gameObject == this.gameObject)
-            {
-                //猫がりんごをもっていなければ
-                if (!onCatHeadApple.enabled)
-                {
-                    //ねこにりんごを持たせる
-                    onCatHeadApple.enabled = true;
-                    PlayerController.isCatching = true;
-
-                    //自分自身を消す
-                    Destroy(this.gameObject);
-                }
-            }
-
-        }
+        // クリックされたりんごを消す
+        Destroy(this.gameObject);
     }
 }

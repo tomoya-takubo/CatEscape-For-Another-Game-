@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class WateringCanMoving : MonoBehaviour
+public class WateringCanMoving : ClickedObjectBase
 {
     public SpriteRenderer goddess;   //女神
     public Image WaterAblty;   //じょうろアビリティ
@@ -13,40 +13,55 @@ public class WateringCanMoving : MonoBehaviour
 
     void Start()
     {
+        // 初期位置取得（Y座標）
         startPosY = this.transform.position.y;
     }
 
     // Update is called once per frame
     void Update()
     {
-        //ゆらゆら待機
+        // ゆらゆら上下に動く
+        Waving();
+    }
+
+    /// <summary>
+    /// ゆらゆら上下に動く
+    /// </summary>
+    public void Waving()
+    {
+        // 累積時間更新
         timeStock += Time.deltaTime;
+
+        // Y軸方向の位置を更新
         this.transform.position = new Vector3(this.transform.position.x
                                             , startPosY + 0.50f * Mathf.Sin(2 * timeStock)
                                             , this.transform.position.z);
+    }
 
-        //クリックされたら
-        if (Input.GetMouseButtonDown(0))
-        {
-            //レーザー照射
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+    /// <summary>
+    /// クリック時の処理
+    /// </summary>
+    public override void Clicked()
+    {
+        // じょうろアビリティ付与
+        WaterAblty.enabled = true;          // UI表示
+        AbilityManager.waterAbility = true; // 判定
 
-            //レーザーで当たったオブジェクトを取得
-            RaycastHit2D hit2d = Physics2D.Raycast((Vector2)ray.origin, (Vector2)ray.direction);
+        //女神表示消す
+        this.goddess.gameObject.SetActive(false);
 
-            //何かしら取得でき、それが自分自身だったら
-            if(hit2d && hit2d.transform.gameObject == this.gameObject)
-            {
-                //自身の存在を消す
-                this.gameObject.SetActive(false);
+        //自身の存在を消す
+        this.gameObject.SetActive(false);
+    }
 
-                //女神表示消す
-                this.goddess.gameObject.SetActive(false);
 
-                //じょうろアビリティ付与
-                WaterAblty.enabled = true;  //UI表示
-                AbilityManager.waterAbility = true; //判定
-            }
-        }
+    public override void ChangeNekoEmotion(PlayerController playerController)
+    {
+        // ネコはてな
+        playerController.emotion = PlayerController.EMOTION.SUPRISED;   // （☆）右辺ポイント！
+
+        // ネコ感情絵を更新
+        playerController.nekoEmotion.sprite = Resources.Load<Sprite>("EMOTIONS/EMOTION_" + ((int)playerController.emotion).ToString());
+
     }
 }

@@ -3,63 +3,68 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class ClosetBehavor : MonoBehaviour
+public class ClosetBehavor : ClickedObjectBase
 {
-    public Image scissors;  // はさみアビリティ
-    public GameObject closetClosed; // クローゼット（未開放）
-    public GameObject closetOpen;   // クローゼット（開放）
-    public GameObject hasami;   // はさみ
-    public PlayerReaction nekoReaction; // ねこリアクション
+    // 絵
+    public GameObject openingCloset;        // クローゼット（開いている）
 
-    private bool isOpenCloset = false;    // タンスが開いているか
+    // 効果音
+    public AudioClip gachaGacha;            // ガチャガチャ音
+    public AudioClip unLocking;             // 鍵が開く音
 
-    void OnTriggerStay2D(Collider2D col)
+    // 判定
+    public static bool unlock = false;      // アンロック判定
+
+    // 他オブジェクト紐づけ
+    public GameDirector gmDic;              // ゲームディレクター
+
+
+    /// <summary>
+    /// クリック処理
+    /// </summary>
+    public override void Clicked()
     {
-        // はさみアビリティ取得してれば処理なし
-        if (AbilityManager.scissorAbility)
+        // ネコが近くにいる
+        if(this.nearCat)
         {
-            return;
-        }
-
-        // ねこリアクション
-        // タンスが閉まっていれば
-        if (!isOpenCloset)
-        {
-            // ねこ疑問
-            nekoReaction.Reaction(PlayerReaction.PLAYER_REANCTIONS.QUESTION);
-        }
-        // タンスが開いていれば
-        else
-        {
-            // ねこびっくり
-            nekoReaction.Reaction(PlayerReaction.PLAYER_REANCTIONS.EXCLAMATION);
-        }
-
-        // クリック時イベント
-        if (Input.GetMouseButtonUp(0))
-        {
-            // レーザーを飛ばす
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);    // マウスポインタからレーザ発射
-            RaycastHit2D hit2d = Physics2D.Raycast((Vector2)ray.origin, (Vector2)ray.direction);  // レーザーに当たったオブジェクトを取得
-            
-            // レーザーがクローゼットに当たったら
-            if (hit2d && hit2d.collider.gameObject == this.gameObject)  // レーザーに当たったのが自分
+            // ネコがカギを持っている
+            if (PlayerController.GetHasKey())
             {
-                // タンスを開放する
-                closetClosed.SetActive(false);  // 引き出しが閉まっている絵を消す
-                closetOpen.SetActive(true); // 引き出しが開いている絵を表示する
-                hasami.SetActive(true); // はさみ絵を表示する
-                isOpenCloset = true;    // 開放判定をONにする
+                // カギが開く音を再生
+                this.GetComponent<AudioSource>().PlayOneShot(unLocking);
+
+                // 開放判定をtrueにする
+                unlock = true;
+
+                // カギアイコンを非表示にする
+                this.gmDic.SetKeyIcon(false);
+
+                // 「開いているクローゼット」の絵を表示する
+                this.GetComponent<SpriteRenderer>().enabled = false;    // 閉じた絵を非表示
+                openingCloset.SetActive(true);                          // 開いた絵のSetActiveをtrueに
+
+                // ネコのカギ所有判定をfalseにする
+                PlayerController.SetHasKey(false);
+
+                // 自分自身を消す
+                Destroy(this.gameObject, 0.5f);
+
+            }
+            // ネコをカギを持っていない
+            else
+            {
+                // ガチャガチャ音を鳴らす
+                this.GetComponent<AudioSource>().PlayOneShot(this.gachaGacha, 0.5f);
             }
         }
     }
 
     /// <summary>
-    /// 接触状態から抜けたとき、リアクションをなしに
+    /// ネコの感情を変える
     /// </summary>
-    /// <param name="col"></param>
-    void OnTriggerExit2D(Collider2D col)
+    public override void ChangeNekoEmotion(PlayerController playerController)
     {
-        nekoReaction.Reaction(PlayerReaction.PLAYER_REANCTIONS.NONE);
+        // ネコはてな（デフォルト）
+        base.ChangeNekoEmotion(playerController);
     }
 }

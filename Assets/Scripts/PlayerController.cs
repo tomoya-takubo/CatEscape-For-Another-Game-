@@ -5,101 +5,113 @@ using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
 {
-    public SpriteRenderer apple;    //りんご
-    public SpriteRenderer appleBasket30;    //りんご30%
-    public SpriteRenderer appleBasket50;    //りんご50%
-    public float movePower = 3.0f; //左右の移動量
-    public static bool isCatching = false; //りんごを持っているか
+    public SpriteRenderer apple;            // りんご
+    public SpriteRenderer appleBasket30;    // りんご30%
+    public SpriteRenderer appleBasket50;    // りんご50%
+    public float movePower = 3.0f;          // 左右の移動量
 
-    public GameObject Wakaba;   //わかば
+    public GameObject Wakaba;               // わかば
 
-    public Text getWaterRatio;  //貯水率
+    public ShowWaterRating showWaterRating; // 貯水率表示
 
-    public Image waterGauge;    //じょうろの水の量
+    public Image waterGauge;                // じょうろの水の量
 
-    public SpriteRenderer wateringCan;  //じょうろ（ねこのハンド側）
+    public SpriteRenderer wateringCan;      // じょうろ（ねこのハンド側）
 
-    //ボタン
-    public Button buttonR;  //右
-    public Button buttonL;  //左
+    // ステージ範囲
+    public Transform limitNekoPosXRight;    // 右限界
+    public Transform limitNekoPosXLeft;     // 左限界
 
-    //ステージ範囲
-    public float limitPosXRight; //右上限
-    public float limitPosXLeft; //左上限
+    // ネコの気持ち
+    public EMOTION emotion;
 
+    // ネコの気持ちの絵格納用
+    public SpriteRenderer nekoEmotion;
 
-    private int appleNum = 7;   //木になっているりんごのナンバー管理
-    private int n;  //カメラ移動のための変数
+    // カギ所有判定用
+    public static bool hasKey = false;
 
-    // Start is called before the first frame update
-    void Start()
+    // りんご所有有無
+    public static bool onApple = false;
+
+    // カメラ
+    public CameraMotion cameraMotion;
+
+    // 判定
+    bool leftChecker = true;   // 左移動限界点
+    bool rightChecker = true;  // 右移動限界点
+
+    // 感情
+    public enum EMOTION
     {
-        
+        NOMAL,      // 通常
+        QUESTION,   // はてな？
+        SUPRISED    // びっくり！
     }
 
     void Update()
     {
-        /*
-        // スペースキーが押されていたら
-        if (Input.GetKey(KeyCode.Space))
+        // 移動
+        if(Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow))  // 左
         {
-            // 水ゲージを回復
-            GameObject director = GameObject.Find("GameDirector");
-            director.GetComponent<GameDirector>().IncreaseWater();
+            if(leftChecker) LButtonDown();
         }
-        */
-
-        // 水をあげる
-        // スペースキー押下
-        if (Input.GetKey(KeyCode.Space))
+        else if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow))  // 右
         {
-            // 水をやる
-            Water();
-
-        }
-        else
-        {
-            // ねこの手のじょうろを消す
-            wateringCan.enabled = false;
+            if (rightChecker) RButtonDown();
         }
     }
 
+    /// <summary>
+    /// 左移動
+    /// </summary>
+    public void LButtonDown()
+    {
+        transform.Translate(-movePower, 0, 0);          //プレイヤー移動
+        transform.localScale = new Vector3(-1, 1, 1);   //プレイヤー向き
+
+        // （条件を満たせば）カメラ移動
+        this.cameraMotion.MoveCameraPosLeftDirection(this.transform.position.x);
+
+        //位置チェック
+        LimitCheck();
+
+        // ネコ感情絵オブジェクト取得
+        Transform reactions = this.transform.Find("Reactions").transform;
+
+        // 絵の向きをネコに合わせる
+        reactions.localScale = new Vector2(-1, this.transform.localScale.y);
+
+        // 回転をセット
+        reactions.localRotation = Quaternion.Euler(0, 0, -15);
+
+        if (!rightChecker) rightChecker = true;
+    }
+
+    /// <summary>
+    /// 右移動
+    /// </summary>
     public void RButtonDown()
     {
         transform.Translate(movePower, 0, 0);   //プレイヤー移動
         transform.localScale = new Vector3(1, 1, 1);    //プレイヤー向き
-        if(transform.position.x >= 10 + n * 18)
-        {
-            //カメラ移動
-            Camera.main.transform.position += new Vector3(18, 0, 0);
 
-            //n更新
-            n++;
-
-        }
+        // （条件を満たせば）カメラ移動
+        this.cameraMotion.MoveCameraPosRightDirection(this.transform.position.x);
 
         //位置チェック
         LimitCheck();
 
-        Debug.Log("右のボタンが押されています！");
-    }
+        // ネコ感情絵オブジェクト取得
+        Transform reactions = this.transform.Find("Reactions").transform;
 
-    public void LButtonDown()
-    {
-        transform.Translate(-movePower, 0, 0);  //プレイヤー移動
-        transform.localScale = new Vector3(-1, 1, 1);    //プレイヤー向き
-        if (transform.position.x <= -10 + n * 18)
-        {
-            //カメラ移動
-            Camera.main.transform.position -= new Vector3(18, 0, 0);
+        // 絵の向きをネコに合わせる
+        reactions.localScale = new Vector2(1, this.transform.localScale.y);
 
-            //n更新
-            n--;
+        // 回転をセット
+        reactions.localRotation = Quaternion.Euler(0, 0, 0);
 
-        }
-
-        //位置チェック
-        LimitCheck();
+        if (!leftChecker) leftChecker = true;
     }
 
     /// <summary>
@@ -107,127 +119,121 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private void LimitCheck()
     {
-        //いったん左右ボタンをいずれもアクティブに
-        buttonR.interactable = true;
-        buttonL.interactable = true;
-
         //右限界を超えていたら
-        if(transform.position.x > limitPosXRight)
+        if(transform.position.x > limitNekoPosXRight.position.x)
         {
-            //右移動ボタンを非アクティブ
-            buttonR.interactable = false;
+            rightChecker = false;
         }
 
         //左限界を超えていたら
-        if (transform.position.x < limitPosXLeft)
+        if (transform.position.x < limitNekoPosXLeft.position.x)
         {
-            //右移動ボタンを非アクティブ
-            buttonL.interactable = false;
+            leftChecker = false;
         }
     }
 
-    private void OnTriggerEnter2D(Collider2D col)
+    /// <summary>
+    /// 接触処理
+    /// </summary>
+    /// <param name="col"></param>
+    private void OnTriggerStay2D(Collider2D col)
     {
-        //木の場合
-        if (col.tag == "tree")
+        // ClickedObjectBaseクラス取得
+        if (col.gameObject.TryGetComponent(out ClickedObjectBase clickedObjectBase))
         {
-            //猫ちゃんがりんごを持っていなかったら
-            if (!isCatching)
-            {
-                //猫ちゃんの頭にりんごをのせる
-                apple.enabled = true;
-                isCatching = true;
-
-                //木になっているりんごを一つ減らす
-                GameObject appleDisapp = GameObject.Find("fruit_ringo (" + appleNum.ToString() + ")");
-                appleDisapp.GetComponent<SpriteRenderer>().enabled = false;
-                appleNum--; //非表示対象のりんごの番号を１下げる
-
-            }
-
-        }
-        //かごの場合
-        else if (col.tag == "basket")
-        {
-            //猫ちゃんがりんごを持っていたら
-            if (isCatching)
-            {
-                //猫ちゃんの頭のりんごをはずす
-                apple.enabled = false;
-                isCatching = false; //キャッチフラグをfalseに
-
-                //りんご3分盛が非表示であれば
-                if(appleBasket30.enabled == false)
-                {
-                    //かごを3分盛りにする
-                    appleBasket30.enabled = true;
-                }
-                //りんご5分盛が非表示であれば
-                else if (appleBasket50.enabled == false)
-                {
-                    //かごを5分盛する
-                    appleBasket50.enabled = true;
-                }
-            }
-
+            // ネコリアクション
+            clickedObjectBase.ChangeNekoEmotion(this);
         }
 
+        // りんごの木のそばにいるとき
+        if(col.tag == "Tree")
+        {
+            // じょうろアビリティを持っていなければ
+            if (!AbilityManager.waterAbility)
+            {
+                // 後続処理なし
+                return;
+            }
+
+            // じょうろに水が残っていて、かつスペースキーが押されていたら
+            if (waterGauge.fillAmount > 0 && Input.GetKey(KeyCode.Space))
+            {
+                // 水をあげる
+                wateringCan.enabled = true;                                 // ねこにじょうろを持たせる
+                WakabaBehavior wB = Wakaba.GetComponent<WakabaBehavior>();  // 木クラスを取得
+                if (wB.getWater < 100.0f)
+                {
+                    wB.getWater += Time.deltaTime * 5f;                     // 木の貯水量更新
+                }
+                else
+                {
+                    wB.getWater = 100.0f;                                   // 100%限度
+                }
+                waterGauge.fillAmount -= Time.deltaTime / 10f;              // じょうろの水を減らす
+
+                // 木を成長させる
+                wB.Grow();
+
+                // 貯水率表示更新
+                showWaterRating.UpdateGettingWaterRate(wB.getWater);
+            }
+
+            // 水をあげ終えたら
+            if(Input.GetKeyUp(KeyCode.Space))
+            {
+                // ねこに持たせていたじょうろを非表示にする
+                wateringCan.enabled = false;
+            }
+        }
+
+        // 水たまりを踏んでいるとき
+        if (col.tag == "Puddle")
+        {
+            // じょうろアビリティを持っていなければ
+            if(!AbilityManager.waterAbility)
+            {
+                // 後続処理なし
+                return;
+            }
+        }
     }
 
-    void Water()
+    /// <summary>
+    /// 離脱処理
+    /// </summary>
+    /// <param name="col"></param>
+    private void OnTriggerExit2D(Collider2D col)
     {
-        //じょうろアビリティを持っていなければ
-        if (!AbilityManager.waterAbility)
-        {
-            return;
-        }
+        // 接触していたオブジェクトが離れたらネコの感情をNOMALに戻す
+        this.emotion = EMOTION.NOMAL;
 
-        //以下、じょうろアビリティがある前提
+        // 絵を差し替える（無に）
+        nekoEmotion.sprite = Resources.Load<Sprite>("EMOTIONS/EMOTION_" + ((int)emotion).ToString());
+    }
 
-        WakabaBehavior wB = Wakaba.GetComponent<WakabaBehavior>();
+    /// <summary>
+    /// 感情絵の差し替え
+    /// </summary>
+    private void ChangeEmotionSprite(EMOTION emotion)
+    {
+        // 絵を差し替える  ↓（☆）重要（Projects中のResourcesフォルダ）
+        this.nekoEmotion.sprite = Resources.Load<Sprite>("EMOTIONS/EMOTION_" + ((int)emotion).ToString());
+    }
 
-        //わかばの付近かつじょうろに水が残っていたら
-        if (wB.nearPlayer && waterGauge.fillAmount > 0)
-        {
-            //ねこのハンドにじょうろ
-            wateringCan.enabled = true;
+    /// <summary>
+    /// カギの所有有無を返す
+    /// </summary>
+    /// <returns></returns>
+    public static bool GetHasKey()
+    {
+        return hasKey;
+    }
 
-            //貯水（わかばサイド）
-            wB.getWater += Time.deltaTime * 5f;
-
-            //じょうろの水を減らす
-            waterGauge.fillAmount -= Time.deltaTime / 10f;
-
-            //貯水率更新
-            getWaterRatio.text
-                = (100f * wB.getWater / wB.waterMaxValue).ToString("F2") + "%";
-
-            //木の絵を変える
-            if (100f * wB.getWater / wB.waterMaxValue >= 30.0f
-                    && 100f * wB.getWater / wB.waterMaxValue < 60.0f)    //木（裸）
-            {
-                //裸の木に変更
-                //this.gameObject.SetActive(false); //←ミス
-                GameObject.Find("wakaba").GetComponent<SpriteRenderer>().enabled = false;
-                GameObject.Find("nakedTree").GetComponent<SpriteRenderer>().enabled = true;
-            }
-            else if(100f * wB.getWater / wB.waterMaxValue >= 60.0f
-                    && 100f * wB.getWater / wB.waterMaxValue < 80.0f)   //木（葉っぱ）
-            {
-                //葉のついた木に変更
-                //this.gameObject.SetActive(false); //←ミス
-                GameObject.Find("nakedTree").GetComponent<SpriteRenderer>().enabled = false;
-                GameObject.Find("tree").GetComponent<SpriteRenderer>().enabled = true;
-            }
-            else if(100f * wB.getWater / wB.waterMaxValue >= 80.0f
-                    && 100f * wB.getWater / wB.waterMaxValue < 100.0f)  //木（実）
-            {
-                //実のなった木に変更
-                //this.gameObject.SetActive(false); //←ミス
-                GameObject.Find("tree").GetComponent<SpriteRenderer>().enabled = false;
-                //GameObject.Find("tree(with apples)").GetComponent<SpriteRenderer>().enabled = true;
-                wB.treeWithApples.SetActive(true);
-            }
-        }
+    /// <summary>
+    /// カギを取得
+    /// </summary>
+    public static void SetHasKey(bool setKey)
+    {
+        hasKey = setKey;
     }
 }

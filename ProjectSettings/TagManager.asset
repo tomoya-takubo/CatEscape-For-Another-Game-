@@ -7,6 +7,14 @@ TagManager:
   - tree
   - basket
   - puddle
+  - Threshold
+  - Grass
+  - Key
+  - Closet
+  - Scissors
+  - GameDirector
+  - Tree
+  - Puddle
   layers:
   - Default
   - TransparentFX
@@ -16,7 +24,7 @@ TagManager:
   - UI
   - 
   - 
-  - 
+  - clickedObjectLayer
   - 
   - 
   - 
